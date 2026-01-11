@@ -38,8 +38,19 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Science Club": {
+        "description": "Explore science experiments and participate in science fairs",
+        "schedule": "Wednesdays, 4:00 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": []
     }
 }
+activities.update({
+    "sports": ["soccer", "basketball", "tennis", "swimming"],
+    "artistic": ["painting", "music", "dance", "sculpture"],
+    "intellectual": ["chess", "math", "coding", "debate"]
+})
 
 
 @app.get("/")
@@ -58,6 +69,10 @@ def signup_for_activity(activity_name: str, email: str):
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
+    
+    # Validate student is not already signed up
+    if email in activities[activity_name]["participants"]:
+        raise HTTPException(status_code=400, detail="Student is already signed up")
 
     # Get the specific activity
     activity = activities[activity_name]
@@ -65,3 +80,5 @@ def signup_for_activity(activity_name: str, email: str):
     # Add student
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
