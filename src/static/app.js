@@ -8,13 +8,39 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchActivities() {
     try {
       const response = await fetch("/activities");
-      const activities = await response.json();
+      console.log("Fetch /activities status:", response.status);
+      const text = await response.text();
+      console.log("Fetch /activities raw body:", text);
+
+      let activities;
+      try {
+        activities = JSON.parse(text);
+      } catch (jsonError) {
+        activitiesList.innerHTML = '<p style="color: #b91c1c; font-weight: bold;">Activities data is not valid JSON.</p>';
+        console.error("JSON parse error:", jsonError);
+        return;
+      }
+
+      if (!response.ok) {
+        activitiesList.innerHTML = `<p style="color: #b91c1c; font-weight: bold;">Failed to load activities (status ${response.status}).</p>`;
+        return;
+      }
+
+      if (!activities || Object.keys(activities).length === 0) {
+        activitiesList.innerHTML = '<p style="color: #b91c1c; font-weight: bold;">No activities found.</p>';
+        return;
+      }
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      // Clear dropdown options except the first placeholder
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
+        // Only process objects that have a description property (i.e., real activities)
+        if (!details || typeof details !== "object" || !details.description) return;
+
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
@@ -27,6 +53,32 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
         `;
 
+        // Participants Section
+        const participantsSection = document.createElement("div");
+        participantsSection.className = "participants-section";
+
+        const participantsHeader = document.createElement("h4");
+        participantsHeader.textContent = "Participants";
+        participantsSection.appendChild(participantsHeader);
+
+        const participantsList = document.createElement("ul");
+        participantsList.className = "participants-list";
+
+        if (details.participants && details.participants.length > 0) {
+          details.participants.forEach((email) => {
+            const li = document.createElement("li");
+            li.textContent = email;
+            participantsList.appendChild(li);
+          });
+        } else {
+          const li = document.createElement("li");
+          li.textContent = "No participants yet.";
+          participantsList.appendChild(li);
+        }
+
+        participantsSection.appendChild(participantsList);
+        activityCard.appendChild(participantsSection);
+
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
@@ -36,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         activitySelect.appendChild(option);
       });
     } catch (error) {
-      activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
+      activitiesList.innerHTML = '<p style="color: #b91c1c; font-weight: bold;">Failed to load activities. Please try again later.</p>';
       console.error("Error fetching activities:", error);
     }
   }
